@@ -369,6 +369,8 @@ dependencies {
     implementation(aniyomilibs.bundles.cast)
     // nanohttpd server
     implementation(aniyomilibs.nanohttpd)
+    // sherpa-onnx
+    implementation(aniyomilibs.sherpa.onnx)
 }
 
 androidComponents {

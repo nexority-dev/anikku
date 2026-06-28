@@ -5,6 +5,7 @@ constraint-layout = "1.1.1"
 ffmpeg-kit = "1.17"
 media = "1.7.1"
 seeker = "1.2.2"
+sherpa-onnx = "v1.13.3"
 truetypeparser = "2.1.4"
 nanohttpd-version = "2.3.1"
 
@@ -16,6 +17,7 @@ compose-constraintlayout = { module = "androidx.constraintlayout:constraintlayou
 ffmpeg-kit = { module = "com.github.jmir1:ffmpeg-kit", version.ref = "ffmpeg-kit" }
 mediasession = { module = "androidx.media:media", version.ref = "media" }
 seeker = { module = "io.github.2307vivek:seeker", version.ref = "seeker" }
+sherpa-onnx = { module = "com.github.k2-fsa:sherpa-onnx", version.ref = "sherpa-onnx" }
 truetypeparser = { module = "io.github.yubyf:truetypeparser-light", version.ref = "truetypeparser" }
 
 torrentserver = "com.github.Diegopyl1209:torrentserver-aniyomi:c18f58e51b"
