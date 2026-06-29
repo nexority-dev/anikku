@@ -55,6 +55,8 @@ class DownloadPreferences(
 
     fun downloadNewUnreadChaptersOnly() = preferenceStore.getBoolean("download_new_unread_episodes_only", false)
 
+    fun generateSubtitlesForDownloads() = preferenceStore.getBoolean("download_generate_subtitles", false)
+
     // KMK -->
     fun downloadCacheRenewInterval() = preferenceStore.getInt("download_cache_renew_interval", 1)
     // KMK <--
