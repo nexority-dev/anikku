@@ -17,6 +17,9 @@ import com.hippo.unifile.UniFile
 import eu.kanade.tachiyomi.animesource.model.Track
 import eu.kanade.tachiyomi.animesource.model.Video
 import eu.kanade.tachiyomi.data.download.model.Download
+import eu.kanade.tachiyomi.data.download.subtitle.SherpaOnnxTranscriber
+import eu.kanade.tachiyomi.data.download.subtitle.SubtitleGenerator
+import eu.kanade.tachiyomi.data.download.subtitle.TranscriptionModelManager
 import eu.kanade.tachiyomi.data.library.LibraryUpdateNotifier
 import eu.kanade.tachiyomi.data.notification.NotificationHandler
 import eu.kanade.tachiyomi.data.torrentServer.service.TorrentServerService
@@ -94,6 +97,13 @@ class Downloader(
      * Notifier for the downloader state and progress.
      */
     private val notifier by lazy { DownloadNotifier(context) }
+
+    /**
+     * Generates offline subtitles for downloaded episodes when enabled in settings.
+     */
+    private val subtitleGenerator by lazy {
+        SubtitleGenerator(context, SherpaOnnxTranscriber(TranscriptionModelManager(context)))
+    }
 
     /**
      * Coroutine scope used for download job scheduling
@@ -373,7 +383,11 @@ class Downloader(
 
             getOrDownloadVideoFile(download, tmpDir)
 
-            ensureSuccessfulAnimeDownload(download, animeDir, tmpDir, episodeDirname)
+            val videoFile = ensureSuccessfulAnimeDownload(download, animeDir, tmpDir, episodeDirname)
+
+            if (preferences.generateSubtitlesForDownloads().get()) {
+                subtitleGenerator.generate(videoFile, tmpDir)
+            }
         } catch (e: Exception) {
             download.status = Download.State.ERROR
             notifier.onError(e.message, download.episode.name, download.anime.title, download.anime.id)
@@ -767,11 +781,14 @@ class Downloader(
         animeDir: UniFile,
         tmpDir: UniFile,
         dirname: String,
-    ) {
+    ): UniFile {
         // Ensure that the episode folder has the full video
         val downloadedVideo = tmpDir.listFiles().orEmpty().filterNot { it.extension == ".tmp" }
 
-        download.status = if (downloadedVideo.size == 1) {
+        val videoFile = if (downloadedVideo.size == 1) {
+            val videoFileName = downloadedVideo.single().name
+                ?: throw Exception("Unable to finalize download")
+
             // Only rename the directory if it's downloaded
             val filename = DiskUtil.buildValidFilename("${download.anime.title} - ${download.episode.name}")
             tmpDir.findFile("${filename}_tmp.mkv")?.delete()
@@ -780,10 +797,16 @@ class Downloader(
             cache.addEpisode(dirname, animeDir, download.anime)
 
             DiskUtil.createNoMediaFile(tmpDir, context)
-            Download.State.DOWNLOADED
+            download.status = Download.State.DOWNLOADED
+
+            // Re-resolve by name rather than trusting the pre-rename child reference to remain valid.
+            tmpDir.findFile(videoFileName)
+                ?: throw Exception("Downloaded video file missing after finalization")
         } else {
             throw Exception("Unable to finalize download")
         }
+
+        return videoFile
     }
 
     /**
