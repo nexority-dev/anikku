@@ -5,17 +5,6 @@ import java.io.BufferedWriter
 import java.io.OutputStreamWriter
 import kotlin.math.max
 
-/**
- * Renders a [Transcript] into a standard .srt file.
- *
- * Writes to a temporary "<baseFileName>.srt.tmp" file first and only replaces the real
- * "<baseFileName>.srt" once the new content has been fully written and flushed, so a crash or
- * cancellation mid-write never leaves a corrupt or partial subtitle file next to the video. Any
- * existing subtitle file with the same name is overwritten.
- *
- * Pure file I/O with no Android/ffmpeg/network dependency, so it's the easiest piece of this
- * pipeline to unit test in isolation.
- */
 class SrtWriter {
 
     suspend fun write(transcript: Transcript, targetDir: UniFile, baseFileName: String): UniFile {
@@ -28,8 +17,6 @@ class SrtWriter {
 
         try {
             writeEntries(transcript, tempFile)
-
-            // Atomically replace any previous subtitle file with the new one.
             targetDir.findFile(finalName)?.delete()
             if (!tempFile.renameTo(finalName)) {
                 throw Exception("Unable to finalize subtitle file")
@@ -39,7 +26,6 @@ class SrtWriter {
             throw e
         }
 
-        // Re-resolve by name rather than trusting renameTo() to have mutated tempFile in place.
         return targetDir.findFile(finalName)
             ?: throw Exception("Subtitle file missing after finalization")
     }
@@ -61,9 +47,6 @@ class SrtWriter {
         }
     }
 
-    /**
-     * Formats milliseconds as the SRT-standard HH:MM:SS,mmm timestamp.
-     */
     private fun formatTimestamp(ms: Long): String {
         val clamped = max(0L, ms)
         val hours = clamped / 3_600_000
@@ -74,7 +57,6 @@ class SrtWriter {
     }
 
     companion object {
-        // SRT files conventionally use CRLF line endings for broad player compatibility.
         private const val CRLF = "\r\n"
     }
 }

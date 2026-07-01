@@ -13,15 +13,6 @@ import eu.kanade.tachiyomi.util.storage.toFFmpegString
 import logcat.LogPriority
 import tachiyomi.core.common.util.system.logcat
 
-/**
- * [AudioExtractor] backed by the ffmpeg-kit dependency already used elsewhere in the downloader.
- *
- * Always extracts into mono, 16kHz, 16-bit PCM WAV. That format isn't tied to any particular
- * transcription backend - it's simply the de-facto standard input for speech-recognition models
- * and services in general (it comfortably covers the frequency range of human speech, and most
- * backends downsample to it internally anyway), so producing it here keeps this extractor usable
- * regardless of which [SubtitleTranscriber] ends up consuming its output.
- */
 class FfmpegAudioExtractor(
     private val context: Context,
 ) : AudioExtractor {
@@ -37,15 +28,10 @@ class FfmpegAudioExtractor(
             ?: throw Exception("Unable to create temporary audio file")
         val outputPath = outputFile.toFFmpegString(context)
 
-        // -map 0:a:0 deliberately picks only the first audio track: some sources mux multiple
-        // dub languages into a single file, and we need a single deterministic track to feed
-        // to transcription rather than whatever ffmpeg would otherwise default to.
         val command = FFmpegKitConfig.parseArguments(
             "-i \"$inputPath\" -map 0:a:0 -vn -ac 1 -ar 16000 -c:a pcm_s16le \"$outputPath\" -y",
         )
 
-        // Mirrors the exact FFmpegSession.create(...) call shape used in Downloader.ffmpegDownload,
-        // rather than assuming a different overload exists.
         val logCallback = LogCallback { log ->
             if (log.level <= Level.AV_LOG_WARNING) {
                 log.message?.let { logcat(LogPriority.ERROR) { it } }
@@ -63,9 +49,6 @@ class FfmpegAudioExtractor(
         return outputFile
     }
 
-    /**
-     * Probes [inputPath] for the presence of any audio stream without doing a full extraction.
-     */
     private fun hasAudioStream(inputPath: String): Boolean {
         val command = FFmpegKitConfig.parseArguments(
             "-v error -select_streams a -show_entries stream=index -of csv=p=0 \"$inputPath\"",
