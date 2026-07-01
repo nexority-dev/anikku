@@ -14,9 +14,7 @@ class SherpaOnnxTranscriber(
 ) : SubtitleTranscriber {
 
     override suspend fun transcribe(audioFile: UniFile): Transcript {
-        if (!modelManager.isModelReady()) {
-            throw IllegalStateException("Transcription models not found; download them before transcribing")
-        }
+        modelManager.ensureModelReady()
 
         val filePath = audioFile.filePath
             ?: throw IllegalStateException("Audio file is not accessible via a filesystem path")
