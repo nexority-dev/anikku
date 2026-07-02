@@ -17,6 +17,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -35,6 +36,10 @@ import kotlinx.collections.immutable.persistentMapOf
 import kotlinx.collections.immutable.toImmutableList
 import kotlinx.collections.immutable.toImmutableMap
 import kotlinx.collections.immutable.toPersistentMap
+import logcat.LogPriority
+import tachiyomi.core.common.util.lang.launchNonCancellable
+import tachiyomi.core.common.util.lang.withUIContext
+import tachiyomi.core.common.util.system.logcat
 import tachiyomi.domain.category.interactor.GetCategories
 import tachiyomi.domain.category.model.Category
 import tachiyomi.domain.download.service.DownloadPreferences
@@ -303,8 +308,10 @@ object SettingsDownloadScreen : SearchableSettings {
         context: Context,
         downloadPreferences: DownloadPreferences,
     ): Preference.PreferenceGroup {
+        val scope = rememberCoroutineScope()
         val modelManager = remember { TranscriptionModelManager(context) }
         var isModelDownloaded by remember { mutableStateOf(modelManager.isModelReady()) }
+        var isDownloadingModel by remember { mutableStateOf(false) }
 
         return Preference.PreferenceGroup(
             title = stringResource(AMR.strings.pref_category_subtitle_model),
@@ -313,6 +320,34 @@ object SettingsDownloadScreen : SearchableSettings {
                     pref = downloadPreferences.generateSubtitlesForDownloads(),
                     title = stringResource(AMR.strings.pref_generate_subtitles_for_downloads),
                     subtitle = stringResource(AMR.strings.pref_generate_subtitles_for_downloads_summary),
+                ),
+                Preference.PreferenceItem.TextPreference(
+                    title = stringResource(AMR.strings.pref_download_subtitle_model),
+                    subtitle = if (isDownloadingModel) {
+                        stringResource(AMR.strings.subtitle_model_downloading)
+                    } else {
+                        stringResource(AMR.strings.pref_download_subtitle_model_summary)
+                    },
+                    enabled = !isModelDownloaded && !isDownloadingModel,
+                    onClick = {
+                        isDownloadingModel = true
+                        scope.launchNonCancellable {
+                            try {
+                                modelManager.ensureModelReady()
+                                withUIContext {
+                                    isModelDownloaded = true
+                                    context.toast(AMR.strings.subtitle_model_downloaded)
+                                }
+                            } catch (e: Throwable) {
+                                logcat(LogPriority.ERROR, e)
+                                withUIContext {
+                                    context.toast(AMR.strings.subtitle_model_download_failed)
+                                }
+                            } finally {
+                                withUIContext { isDownloadingModel = false }
+                            }
+                        }
+                    },
                 ),
                 Preference.PreferenceItem.TextPreference(
                     title = stringResource(AMR.strings.pref_delete_subtitle_model),

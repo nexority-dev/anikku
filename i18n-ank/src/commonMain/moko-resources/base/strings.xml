@@ -231,6 +231,11 @@
     <string name="pref_generate_subtitles_for_downloads">Generate subtitles for downloads</string>
     <string name="pref_generate_subtitles_for_downloads_summary">Uses on-device speech recognition to create an .srt file alongside each downloaded episode. Requires downloading a speech recognition model and will increase download time.</string>
     <string name="pref_category_subtitle_model">Generate subtitles</string>
+    <string name="pref_download_subtitle_model">Download model</string>
+    <string name="pref_download_subtitle_model_summary">Downloads the on-device speech recognition model used for subtitle generation. This may take a while depending on your connection.</string>
+    <string name="subtitle_model_downloading">Downloading speech recognition model…</string>
+    <string name="subtitle_model_downloaded">Speech recognition model downloaded</string>
+    <string name="subtitle_model_download_failed">Failed to download speech recognition model</string>
     <string name="pref_delete_subtitle_model">Delete downloaded model</string>
     <string name="pref_delete_subtitle_model_summary">Removes the on-device speech recognition model used for subtitle generation. It will be downloaded again automatically the next time a subtitle is generated.</string>
     <string name="subtitle_model_deleted">Speech recognition model deleted</string>
