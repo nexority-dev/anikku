@@ -82,11 +82,6 @@ object SettingsDownloadScreen : SearchableSettings {
                 pref = downloadPreferences.downloadOnlyOverWifi(),
                 title = stringResource(MR.strings.connected_to_wifi),
             ),
-            Preference.PreferenceItem.SwitchPreference(
-                pref = downloadPreferences.generateSubtitlesForDownloads(),
-                title = stringResource(AMR.strings.pref_generate_subtitles_for_downloads),
-                subtitle = stringResource(AMR.strings.pref_generate_subtitles_for_downloads_summary),
-            ),
             Preference.PreferenceItem.TextPreference(
                 title = stringResource(MR.strings.download_speed_limit),
                 subtitle = if (speedLimit == 0) {
@@ -115,7 +110,10 @@ object SettingsDownloadScreen : SearchableSettings {
                 downloadPreferences = downloadPreferences,
                 basePreferences = basePreferences,
             ),
-            getSubtitleModelGroup(context = context),
+            getSubtitleModelGroup(
+                context = context,
+                downloadPreferences = downloadPreferences,
+            ),
         )
     }
 
@@ -303,6 +301,7 @@ object SettingsDownloadScreen : SearchableSettings {
     @Composable
     private fun getSubtitleModelGroup(
         context: Context,
+        downloadPreferences: DownloadPreferences,
     ): Preference.PreferenceGroup {
         val modelManager = remember { TranscriptionModelManager(context) }
         var isModelDownloaded by remember { mutableStateOf(modelManager.isModelReady()) }
@@ -310,6 +309,11 @@ object SettingsDownloadScreen : SearchableSettings {
         return Preference.PreferenceGroup(
             title = stringResource(AMR.strings.pref_category_subtitle_model),
             preferenceItems = persistentListOf(
+                Preference.PreferenceItem.SwitchPreference(
+                    pref = downloadPreferences.generateSubtitlesForDownloads(),
+                    title = stringResource(AMR.strings.pref_generate_subtitles_for_downloads),
+                    subtitle = stringResource(AMR.strings.pref_generate_subtitles_for_downloads_summary),
+                ),
                 Preference.PreferenceItem.TextPreference(
                     title = stringResource(AMR.strings.pref_delete_subtitle_model),
                     subtitle = stringResource(AMR.strings.pref_delete_subtitle_model_summary),
