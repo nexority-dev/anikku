@@ -1,5 +1,6 @@
 package eu.kanade.presentation.more.settings.screen
 
+import android.content.Context
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -20,11 +21,14 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.util.fastMap
 import eu.kanade.domain.base.BasePreferences
 import eu.kanade.presentation.category.visualName
 import eu.kanade.presentation.more.settings.Preference
 import eu.kanade.presentation.more.settings.widget.TriStateListDialog
+import eu.kanade.tachiyomi.data.download.subtitle.TranscriptionModelManager
+import eu.kanade.tachiyomi.util.system.toast
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.persistentMapOf
@@ -52,6 +56,7 @@ object SettingsDownloadScreen : SearchableSettings {
 
     @Composable
     override fun getPreferences(): List<Preference> {
+        val context = LocalContext.current
         val getCategories = remember { Injekt.get<GetCategories>() }
         val allAnimeCategories by getCategories.subscribe().collectAsState(initial = emptyList())
         val downloadPreferences = remember { Injekt.get<DownloadPreferences>() }
@@ -110,6 +115,7 @@ object SettingsDownloadScreen : SearchableSettings {
                 downloadPreferences = downloadPreferences,
                 basePreferences = basePreferences,
             ),
+            getSubtitleModelGroup(context = context),
         )
     }
 
@@ -289,6 +295,30 @@ object SettingsDownloadScreen : SearchableSettings {
                     pref = externalDownloaderPreference,
                     title = stringResource(MR.strings.pref_external_downloader_selection),
                     entries = packageNamesMap.toPersistentMap(),
+                ),
+            ),
+        )
+    }
+
+    @Composable
+    private fun getSubtitleModelGroup(
+        context: Context,
+    ): Preference.PreferenceGroup {
+        val modelManager = remember { TranscriptionModelManager(context) }
+        var isModelDownloaded by remember { mutableStateOf(modelManager.isModelReady()) }
+
+        return Preference.PreferenceGroup(
+            title = stringResource(AMR.strings.pref_category_subtitle_model),
+            preferenceItems = persistentListOf(
+                Preference.PreferenceItem.TextPreference(
+                    title = stringResource(AMR.strings.pref_delete_subtitle_model),
+                    subtitle = stringResource(AMR.strings.pref_delete_subtitle_model_summary),
+                    enabled = isModelDownloaded,
+                    onClick = {
+                        modelManager.deleteModel()
+                        isModelDownloaded = false
+                        context.toast(AMR.strings.subtitle_model_deleted)
+                    },
                 ),
             ),
         )
