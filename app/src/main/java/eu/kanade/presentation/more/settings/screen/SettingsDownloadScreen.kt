@@ -6,7 +6,9 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -23,6 +25,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.fastMap
 import eu.kanade.domain.base.BasePreferences
 import eu.kanade.presentation.category.visualName
@@ -312,6 +315,7 @@ object SettingsDownloadScreen : SearchableSettings {
         val modelManager = remember { TranscriptionModelManager(context) }
         var isModelDownloaded by remember { mutableStateOf(modelManager.isModelReady()) }
         var isDownloadingModel by remember { mutableStateOf(false) }
+        var modelDownloadFailed by remember { mutableStateOf(false) }
 
         return Preference.PreferenceGroup(
             title = stringResource(AMR.strings.pref_category_subtitle_model),
@@ -323,30 +327,48 @@ object SettingsDownloadScreen : SearchableSettings {
                 ),
                 Preference.PreferenceItem.TextPreference(
                     title = stringResource(AMR.strings.pref_download_subtitle_model),
-                    subtitle = if (isDownloadingModel) {
-                        stringResource(AMR.strings.subtitle_model_downloading)
-                    } else {
-                        stringResource(AMR.strings.pref_download_subtitle_model_summary)
+                    subtitle = when {
+                        isDownloadingModel -> stringResource(AMR.strings.subtitle_model_downloading)
+                        modelDownloadFailed -> stringResource(AMR.strings.subtitle_model_download_failed)
+                        else -> stringResource(AMR.strings.pref_download_subtitle_model_summary)
                     },
-                    enabled = !isModelDownloaded && !isDownloadingModel,
-                    onClick = {
-                        isDownloadingModel = true
-                        scope.launchNonCancellable {
-                            try {
-                                modelManager.ensureModelReady()
-                                withUIContext {
-                                    isModelDownloaded = true
-                                    context.toast(AMR.strings.subtitle_model_downloaded)
+                    // `enabled = false` collapses this item via AnimatedVisibility (StatusWrapper), it
+                    // does not grey it out, so it must stay true for the whole download.
+                    enabled = !isModelDownloaded,
+                    onClick = if (isDownloadingModel) {
+                        null
+                    } else {
+                        {
+                            modelDownloadFailed = false
+                            isDownloadingModel = true
+                            scope.launchNonCancellable {
+                                try {
+                                    modelManager.ensureModelReady()
+                                    withUIContext {
+                                        isModelDownloaded = true
+                                        context.toast(AMR.strings.subtitle_model_downloaded)
+                                    }
+                                } catch (e: Throwable) {
+                                    logcat(LogPriority.ERROR, e)
+                                    withUIContext {
+                                        modelDownloadFailed = true
+                                        context.toast(AMR.strings.subtitle_model_download_failed)
+                                    }
+                                } finally {
+                                    withUIContext { isDownloadingModel = false }
                                 }
-                            } catch (e: Throwable) {
-                                logcat(LogPriority.ERROR, e)
-                                withUIContext {
-                                    context.toast(AMR.strings.subtitle_model_download_failed)
-                                }
-                            } finally {
-                                withUIContext { isDownloadingModel = false }
                             }
                         }
+                    },
+                    widget = if (isDownloadingModel) {
+                        {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(24.dp),
+                                strokeWidth = 2.dp,
+                            )
+                        }
+                    } else {
+                        null
                     },
                 ),
                 Preference.PreferenceItem.TextPreference(

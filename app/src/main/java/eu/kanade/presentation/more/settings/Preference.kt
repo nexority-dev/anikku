@@ -41,6 +41,7 @@ sealed class Preference {
             override val onValueChanged: suspend (newValue: String) -> Boolean = { true },
 
             val onClick: (() -> Unit)? = null,
+            val widget: (@Composable () -> Unit)? = null,
         ) : PreferenceItem<String>()
 
         /**
